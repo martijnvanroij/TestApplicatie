@@ -6,6 +6,12 @@ from CoolProp.CoolProp import PropsSI
 
 st.set_page_config(page_title="Hydrogen Tank Mass Calculator", page_icon="🧪")
 
+try:
+   from CoolProp.CoolProp import PropsSI
+except Exception as e:
+   st.error("CoolProp could not be imported.")
+   st.exception(e)
+   st.stop()
  
 
 st.title("Hydrogen Tank Mass Calculator")
