@@ -3,105 +3,190 @@ import streamlit as st
 from CoolProp.CoolProp import PropsSI
 
  
+st.set_page_config(page_title="Hydrogen Tubetrailer Transfer Calculator", layout="centered")
 
-st.set_page_config(page_title="Hydrogen Tank Mass Calculator", page_icon="🧪")
+st.title("Hydrogen Tubetrailer Transfer Calculator")
 
-try:
-   from CoolProp.CoolProp import PropsSI
-except Exception as e:
-   st.error("CoolProp could not be imported.")
-   st.exception(e)
-   st.stop()
- 
+st.write(
 
-st.title("Hydrogen Tank Mass Calculator")
+    """
 
-st.write("Calculate hydrogen mass in a tank using CoolProp.")
+    Calculate hydrogen mass in a constant-volume tubetrailer before and after a transfer process.
 
- 
+    The app uses CoolProp to compute hydrogen density from pressure and temperature.
 
-st.subheader("Inputs")
-
- 
-
-temperature = st.number_input(
-
-    "Temperature [K]",
-
-    min_value=1.0,
-
-    value=300.0,
-
-    step=1.0
+    """
 
 )
 
  
 
-pressure_bar = st.number_input(
-
-    "Pressure [bar]",
-
-    min_value=0.001,
-
-    value=100.0,
-
-    step=1.0
-
-)
+st.header("Inputs")
 
  
 
 volume = st.number_input(
 
-    "Tank Volume [m³]",
+    "Tubetrailer volume [m³]",
 
-    min_value=0.000001,
+    min_value=0.001,
 
-    value=0.1,
+    value=40.0,
 
-    step=0.01,
-
-    format="%.6f"
+    step=0.1
 
 )
 
  
 
-pressure_pa = pressure_bar * 1e5
+col1, col2 = st.columns(2)
 
  
 
-try:
+with col1:
 
-   density = PropsSI("D", "T", temperature, "P", pressure_pa, "Hydrogen")
+    st.subheader("Initial state")
 
-   mass = density * volume
+    T_initial_C = st.number_input(
+
+        "Initial temperature [°C]",
+
+        value=15.0,
+
+        step=0.1,
+
+        key="T_initial"
+
+    )
+
+    P_initial_bar = st.number_input(
+
+        "Initial pressure [bar]",
+
+        min_value=0.0,
+
+        value=300.0,
+
+        step=1.0,
+
+        key="P_initial"
+
+    )
 
  
 
-   st.subheader("Output")
+with col2:
 
-   st.metric("Hydrogen Mass in Tank [kg]", f"{mass:.6f}")
+    st.subheader("Final state")
 
+    T_final_C = st.number_input(
 
+        "Final temperature [°C]",
 
-   with st.expander("Calculation details"):
+        value=15.0,
 
-    st.write(f"Temperature: {temperature:.2f} K")
+        step=0.1,
 
-    st.write(f"Pressure: {pressure_bar:.2f} bar ({pressure_pa:.2f} Pa)")
+        key="T_final"
 
-    st.write(f"Volume: {volume:.6f} m³")
+    )
 
-    st.write(f"Density from CoolProp: {density:.6f} kg/m³")
+    P_final_bar = st.number_input(
 
-    st.write(f"Mass = Density × Volume = {mass:.6f} kg")
+        "Final pressure [bar]",
+
+        min_value=0.0,
+
+        value=50.0,
+
+        step=1.0,
+
+        key="P_final"
+
+    )
 
  
 
-except Exception as e:
+# Unit conversions
 
-    st.error("Calculation failed. Please check the input values.")
+T_initial_K = T_initial_C + 273.15
 
-    st.exception(e)
+T_final_K = T_final_C + 273.15
+
+P_initial_Pa = P_initial_bar * 1e5
+
+P_final_Pa = P_final_bar * 1e5
+
+ 
+
+st.header("Results")
+
+ 
+
+if st.button("Calculate"):
+
+    try:
+
+        # Density from CoolProp
+
+        rho_initial = PropsSI("D", "T", T_initial_K, "P", P_initial_Pa, "Hydrogen")
+
+        rho_final = PropsSI("D", "T", T_final_K, "P", P_final_Pa, "Hydrogen")
+
+ 
+
+        # Mass calculations
+
+        m_initial = rho_initial * volume
+
+        m_final = rho_final * volume
+
+        m_transferred = m_initial - m_final
+
+ 
+
+        st.success("Calculation completed successfully.")
+
+ 
+
+        col3, col4, col5 = st.columns(3)
+
+ 
+
+        with col3:
+
+            st.metric("Initial density", f"{rho_initial:.4f} kg/m³")
+
+            st.metric("Initial mass", f"{m_initial:.4f} kg")
+
+ 
+
+        with col4:
+
+            st.metric("Final density", f"{rho_final:.4f} kg/m³")
+
+            st.metric("Final mass", f"{m_final:.4f} kg")
+
+ 
+
+        with col5:
+
+            st.metric("Transferred H₂ mass", f"{m_transferred:.4f} kg")
+
+ 
+
+        st.subheader("Calculation details")
+
+        st.write(f"**Volume:** {volume:.4f} m³")
+
+        st.write(f"**Initial state:** {T_initial_C:.2f} °C, {P_initial_bar:.2f} bar")
+
+        st.write(f"**Final state:** {T_final_C:.2f} °C, {P_final_bar:.2f} bar")
+
+ 
+
+    except Exception as e:
+
+        st.error(f"Error during calculation: {e}")
+
+        st.info("Please check that the pressure and temperature inputs are within valid CoolProp ranges for hydrogen.")
